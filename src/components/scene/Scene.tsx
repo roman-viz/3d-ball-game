@@ -4,15 +4,24 @@ import { Physics } from '@react-three/rapier';
 import Ball from '../ball/Ball';
 import Camera from '../camera/Camera';
 import { Level } from '../level/Level';
-import level1 from '../../levels/level1';
 import { GAME_COLORS } from '../../theme/colors';
+import type { SceneProps } from './models';
 import {
   PHYSICS_GRAVITY,
   PHYSICS_SOLVER_ITERATIONS,
   PHYSICS_TIME_STEP,
 } from './consts';
 
-function Scene() {
+function Scene({
+  segments,
+  levelIndex,
+  gameState,
+  startPosition,
+  fallThreshold,
+  resetKey,
+  onFall,
+  onFinish,
+}: SceneProps) {
   const ballRef = useRef<THREE.Mesh>(null);
 
   return (
@@ -24,15 +33,24 @@ function Scene() {
       <directionalLight position={[5, 10, 5]} intensity={2} />
 
       <Physics
+        paused={gameState !== 'playing'}
         gravity={PHYSICS_GRAVITY}
         timeStep={PHYSICS_TIME_STEP}
         numSolverIterations={PHYSICS_SOLVER_ITERATIONS}
       >
-        <Level segments={level1} />
+        <Level key={levelIndex} segments={segments} />
 
-        <Ball ballRef={ballRef} />
+        <Ball
+          ballRef={ballRef}
+          gameState={gameState}
+          startPosition={startPosition}
+          fallThreshold={fallThreshold}
+          resetKey={resetKey}
+          onFall={onFall}
+          onFinish={onFinish}
+        />
       </Physics>
-      <Camera target={ballRef} />
+      <Camera target={ballRef} resetKey={resetKey} />
     </>
   );
 }

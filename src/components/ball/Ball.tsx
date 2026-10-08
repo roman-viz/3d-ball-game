@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   BallCollider,
@@ -9,7 +9,6 @@ import {
 } from '@react-three/rapier';
 import * as THREE from 'three';
 import { GAME_COLORS } from '../../theme/colors';
-import { BALL_START_POSITION } from '../level/consts';
 import {
   BALL_ANGULAR_DAMPING,
   BALL_FRICTION,
@@ -25,7 +24,7 @@ import {
   ROLLING_MARK_RADIAL_SEGMENTS,
   ROLLING_MARKINGS,
 } from './consts';
-import type { BallGameState, BallProps, BallVisualProps } from './models';
+import type { BallProps, BallVisualProps } from './models';
 
 function createRollingMarkGeometry() {
   const positions = [0, 0, 0];
@@ -92,7 +91,7 @@ function createRollingMarkGeometry() {
   return geometry;
 }
 
-function BallVisual({ ballRef, rigidBody }: BallVisualProps) {
+function BallVisual({ ballRef, rigidBody, resetKey }: BallVisualProps) {
   const { world, rapier } = useRapier();
   const rollingMarkGeometry = useMemo(() => createRollingMarkGeometry(), []);
   const previousPosition = useRef(new THREE.Vector3());
@@ -107,6 +106,12 @@ function BallVisual({ ballRef, rigidBody }: BallVisualProps) {
   const airSpinSpeed = useRef(0);
   const airSpinAxis = useRef(new THREE.Vector3(1, 0, 0));
   const ray = useRef<InstanceType<typeof rapier.Ray> | null>(null);
+
+  useLayoutEffect(() => {
+    rollingOrientation.current.identity();
+    hasPreviousPosition.current = false;
+    airSpinSpeed.current = 0;
+  }, [resetKey]);
 
   if (ray.current === null) {
     ray.current = new rapier.Ray(
@@ -212,12 +217,24 @@ function BallVisual({ ballRef, rigidBody }: BallVisualProps) {
   );
 }
 
-function Ball({ ballRef }: BallProps) {
+function Ball({
+  ballRef,
+  gameState,
+  startPosition,
+  fallThreshold,
+  resetKey,
+  onFall,
+  onFinish,
+}: BallProps) {
   const rigidBody = useRef<RapierRigidBody>(null);
-  const gameState = useRef<BallGameState>('playing');
+  const gameStateRef = useRef(gameState);
+  const appliedResetKey = useRef(resetKey);
+  const fallPending = useRef(false);
+  const finishTriggered = useRef(false);
+  const finishReported = useRef(false);
+  const finishElapsed = useRef(0);
   const finishStart = useRef(new THREE.Vector3());
   const finishTarget = useRef(new THREE.Vector3());
-  const finishElapsed = useRef(0);
   const finishPosition = useRef(new THREE.Vector3());
   const keys = useRef({
     forward: false,
@@ -226,9 +243,43 @@ function Ball({ ballRef }: BallProps) {
     right: false,
   });
 
+  useLayoutEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
+  useLayoutEffect(() => {
+    if (appliedResetKey.current === resetKey) return;
+    appliedResetKey.current = resetKey;
+
+    const body = rigidBody.current;
+    if (!body) return;
+
+    fallPending.current = false;
+    finishTriggered.current = false;
+    finishReported.current = false;
+    finishElapsed.current = 0;
+    keys.current.forward = false;
+    keys.current.backward = false;
+    keys.current.left = false;
+    keys.current.right = false;
+    body.setTranslation(
+      { x: startPosition[0], y: startPosition[1], z: startPosition[2] },
+      true,
+    );
+    body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    body.setGravityScale(1, true);
+    body.wakeUp();
+  }, [resetKey, startPosition]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (gameState.current !== 'playing') return;
+      if (
+        gameStateRef.current !== 'playing'
+        || fallPending.current
+        || finishTriggered.current
+      ) return;
 
       switch (event.code) {
         case 'KeyW':
@@ -294,12 +345,21 @@ function Ball({ ballRef }: BallProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (gameState !== 'playing') {
+      keys.current.forward = false;
+      keys.current.backward = false;
+      keys.current.left = false;
+      keys.current.right = false;
+    }
+  }, [gameState]);
+
   const handleCollisionEnter = (event: CollisionEnterPayload) => {
-    const body = rigidBody.current;
     const target = event.other.rigidBodyObject?.userData.finishTarget;
     if (
-      gameState.current !== 'playing'
-      || !body
+      gameStateRef.current !== 'playing'
+      || fallPending.current
+      || finishTriggered.current
       || !Array.isArray(target)
       || target.length !== 3
       || !target.every((coordinate) => typeof coordinate === 'number')
@@ -307,11 +367,15 @@ function Ball({ ballRef }: BallProps) {
       return;
     }
 
+    const body = rigidBody.current;
+    if (!body) return;
+
+    finishTriggered.current = true;
+    finishReported.current = false;
     const position = body.translation();
     finishStart.current.set(position.x, position.y, position.z);
-    finishTarget.current.set(target[0], target[1], target[2]);
+    finishTarget.current.set(target[0], target[1] + BALL_RADIUS, target[2]);
     finishElapsed.current = 0;
-    gameState.current = 'moving-to-finish';
     keys.current.forward = false;
     keys.current.backward = false;
     keys.current.left = false;
@@ -323,9 +387,9 @@ function Ball({ ballRef }: BallProps) {
 
   useFrame((_, delta) => {
     const body = rigidBody.current;
-    if (!body) return;
+    if (!body || gameStateRef.current !== 'playing') return;
 
-    if (gameState.current === 'moving-to-finish') {
+    if (finishTriggered.current) {
       finishElapsed.current = Math.min(
         finishElapsed.current + delta,
         FINISH_MOVE_DURATION,
@@ -346,13 +410,24 @@ function Ball({ ballRef }: BallProps) {
       body.setLinvel({ x: 0, y: 0, z: 0 }, true);
       body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 
-      if (progress >= 1) {
-        gameState.current = 'finished';
+      if (progress >= 1 && !finishReported.current) {
+        finishReported.current = true;
+        onFinish();
       }
       return;
     }
 
-    if (gameState.current === 'finished') return;
+    if (!fallPending.current && body.translation().y < fallThreshold) {
+      fallPending.current = true;
+      keys.current.forward = false;
+      keys.current.backward = false;
+      keys.current.left = false;
+      keys.current.right = false;
+      onFall();
+      return;
+    }
+
+    if (fallPending.current) return;
 
     let inputX = Number(keys.current.right) - Number(keys.current.left);
     let inputZ = Number(keys.current.backward) - Number(keys.current.forward);
@@ -376,7 +451,7 @@ function Ball({ ballRef }: BallProps) {
     <RigidBody
       ref={rigidBody}
       type="dynamic"
-      position={BALL_START_POSITION}
+      position={startPosition}
       linearDamping={BALL_LINEAR_DAMPING}
       angularDamping={BALL_ANGULAR_DAMPING}
       ccd
@@ -389,7 +464,11 @@ function Ball({ ballRef }: BallProps) {
         friction={BALL_FRICTION}
         restitution={BALL_RESTITUTION}
       />
-      <BallVisual ballRef={ballRef} rigidBody={rigidBody} />
+      <BallVisual
+        ballRef={ballRef}
+        rigidBody={rigidBody}
+        resetKey={resetKey}
+      />
     </RigidBody>
   );
 }

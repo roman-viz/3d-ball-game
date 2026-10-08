@@ -1,0 +1,2 @@
+export const FALL_DISTANCE_BELOW_LEVEL = 5;
+export const FALL_OVERLAY_DELAY_MS = 100;

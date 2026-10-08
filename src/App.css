@@ -9,3 +9,21 @@ body,
 body {
   overflow: hidden;
 }
+
+.game-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background: #9bc6c8;
+}
+
+.game-shell canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

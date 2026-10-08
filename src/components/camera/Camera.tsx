@@ -7,16 +7,22 @@ import {
 } from './consts';
 import type { CameraProps } from './models';
 
-function Camera({ target }: CameraProps) {
+function Camera({ target, resetKey }: CameraProps) {
   const { camera } = useThree();
   const desiredPosition = useRef(new THREE.Vector3());
   const lookTarget = useRef(new THREE.Vector3());
   const targetPosition = useRef(new THREE.Vector3());
   const desiredLookTarget = useRef(new THREE.Vector3());
   const initialized = useRef(false);
+  const previousResetKey = useRef(resetKey);
 
   useFrame((_, delta) => {
     if (!target.current) return;
+
+    if (previousResetKey.current !== resetKey) {
+      previousResetKey.current = resetKey;
+      initialized.current = false;
+    }
 
     target.current.getWorldPosition(targetPosition.current);
     desiredPosition.current.copy(targetPosition.current).add(CAMERA_OFFSET);
