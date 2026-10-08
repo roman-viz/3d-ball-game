@@ -1,12 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import Camera from './components/camera/Camera';
 import { Level } from './components/level/Level';
 import level1 from './levels/level1';
 
-function Ball() {
-  const ballRef = useRef<THREE.Mesh>(null);
-
+function Ball({ ballRef }: { ballRef: RefObject<THREE.Mesh | null> }) {
   const keys = useRef({
     forward: false,
     backward: false,
@@ -103,6 +102,8 @@ function Ball() {
 }
 
 function Scene() {
+  const ballRef = useRef<THREE.Mesh>(null);
+
   return (
     <>
       <ambientLight intensity={1} />
@@ -114,7 +115,8 @@ function Scene() {
 
       <Level segments={level1} />
 
-      <Ball />
+      <Ball ballRef={ballRef} />
+      <Camera target={ballRef} />
     </>
   );
 }
@@ -123,8 +125,8 @@ export default function App() {
   return (
     <Canvas
       camera={{
-        position: [8, 6, 10],
-        fov: 50,
+        position: [4.5, 7.5, 10],
+        fov: 55,
       }}
     >
       <Scene />
