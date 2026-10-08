@@ -1,35 +1,35 @@
-import { useRef, type RefObject } from 'react';
+import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-
-type CameraProps = {
-  target: RefObject<THREE.Mesh | null>;
-};
-
-const CAMERA_OFFSET = new THREE.Vector3(4.5, 7, 10);
-const LOOK_AHEAD_OFFSET = new THREE.Vector3(0, 0.5, -4);
-const FOLLOW_SPEED = 5;
+import {
+  CAMERA_FOLLOW_SPEED,
+  CAMERA_OFFSET,
+} from './consts';
+import type { CameraProps } from './models';
 
 function Camera({ target }: CameraProps) {
   const { camera } = useThree();
   const desiredPosition = useRef(new THREE.Vector3());
   const lookTarget = useRef(new THREE.Vector3());
+  const targetPosition = useRef(new THREE.Vector3());
+  const desiredLookTarget = useRef(new THREE.Vector3());
   const initialized = useRef(false);
 
   useFrame((_, delta) => {
     if (!target.current) return;
 
-    desiredPosition.current.copy(target.current.position).add(CAMERA_OFFSET);
-    const desiredLookTarget = target.current.position.clone().add(LOOK_AHEAD_OFFSET);
+    target.current.getWorldPosition(targetPosition.current);
+    desiredPosition.current.copy(targetPosition.current).add(CAMERA_OFFSET);
+    desiredLookTarget.current.copy(targetPosition.current);
 
     if (!initialized.current) {
       camera.position.copy(desiredPosition.current);
-      lookTarget.current.copy(desiredLookTarget);
+      lookTarget.current.copy(desiredLookTarget.current);
       initialized.current = true;
     } else {
-      const smoothing = 1 - Math.exp(-FOLLOW_SPEED * delta);
+      const smoothing = 1 - Math.exp(-CAMERA_FOLLOW_SPEED * delta);
       camera.position.lerp(desiredPosition.current, smoothing);
-      lookTarget.current.lerp(desiredLookTarget, smoothing);
+      lookTarget.current.lerp(desiredLookTarget.current, smoothing);
     }
 
     camera.lookAt(lookTarget.current);

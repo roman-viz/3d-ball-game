@@ -1,4 +1,4 @@
-import type { LevelSegment } from '../components/level/Level';
+import type { LevelSegment } from '../components/level/models';
 
 const level2: LevelSegment[] = [
   { type: 'straight', length: 12, width: 4, height: 1 },

@@ -1,58 +1,35 @@
+import { useMemo } from 'react';
 import Platform from '../platform/Platform';
 import { GAME_COLORS } from '../../theme/colors';
+import type { LevelProps, LevelSegment, PlatformPiece } from './models';
+import {
+  DEFAULT_PLATFORM_COLOR,
+  DEFAULT_PLATFORM_HEIGHT,
+  FINISH_PLATFORM_COLOR,
+  FINISH_PLATFORM_SIZE,
+  SLOPE_PLATFORM_THICKNESS,
+  START_PLATFORM_POSITION,
+  START_PLATFORM_SIZE,
+} from './consts';
+import * as THREE from 'three';
 
-type SegmentBase = {
-  length: number;
-  width: number;
-  color?: string;
-};
-
-type StraightSegment = SegmentBase & {
-  type: 'straight';
-  height?: number;
-};
-
-type TurnSegment = SegmentBase & {
-  type: 'turn';
-  direction: 'left' | 'right';
-};
-
-type SlopeSegment = SegmentBase & {
-  type: 'slope';
-  height: number;
-};
-
-type GapSegment = SegmentBase & {
-  type: 'gap';
-};
-
-export type LevelSegment =
-  | StraightSegment
-  | TurnSegment
-  | SlopeSegment
-  | GapSegment;
-
-type PlatformPiece = {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  size: [number, number, number];
-  color: string;
-};
-
-const DEFAULT_PLATFORM_COLOR = GAME_COLORS.platform;
-const FINISH_PLATFORM_COLOR = GAME_COLORS.finishPlatform;
-const DEFAULT_PLATFORM_HEIGHT = 1;
-const SLOPE_PLATFORM_THICKNESS = 1;
+export type { LevelSegment } from './models';
 
 function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
   const cursor = {
     x: 0,
     y: 0,
-    z: 0,
+    z: -START_PLATFORM_SIZE[2] / 2,
     directionX: 0,
     directionZ: -1,
   };
-  const pieces: PlatformPiece[] = [];
+  let currentWidth = START_PLATFORM_SIZE[0];
+  const pieces: PlatformPiece[] = [{
+    position: START_PLATFORM_POSITION,
+    rotation: [0, 0, 0],
+    size: START_PLATFORM_SIZE,
+    color: GAME_COLORS.startPlatform,
+  }];
 
   function addStraightPiece(
     length: number,
@@ -77,12 +54,8 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
     cursor.z += cursor.directionZ * length;
   }
 
-  for (const [index, segment] of segments.entries()) {
-    const isLastSegment = index === segments.length - 1;
-
-    const color = isLastSegment
-      ? FINISH_PLATFORM_COLOR
-      : segment.color ?? DEFAULT_PLATFORM_COLOR;
+  for (const segment of segments) {
+    const color = segment.color ?? DEFAULT_PLATFORM_COLOR;
 
     switch (segment.type) {
       case 'straight':
@@ -92,17 +65,19 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           segment.height ?? DEFAULT_PLATFORM_HEIGHT,
           color,
         );
+        currentWidth = segment.width;
         break;
 
       case 'turn': {
         const halfLength = segment.length / 2;
         addStraightPiece(
           halfLength,
-          segment.width,
+          currentWidth,
           DEFAULT_PLATFORM_HEIGHT,
           color,
         );
 
+        const turnPlatformWidth = Math.max(currentWidth, segment.width);
         pieces.push({
           position: [
             cursor.x,
@@ -110,7 +85,11 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
             cursor.z,
           ],
           rotation: [0, 0, 0],
-          size: [segment.width, DEFAULT_PLATFORM_HEIGHT, segment.width],
+          size: [
+            turnPlatformWidth,
+            DEFAULT_PLATFORM_HEIGHT,
+            turnPlatformWidth,
+          ],
           color,
         });
 
@@ -129,6 +108,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           DEFAULT_PLATFORM_HEIGHT,
           color,
         );
+        currentWidth = segment.width;
         break;
       }
 
@@ -137,6 +117,12 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
         const slopeLength = Math.hypot(segment.length, segment.height);
         const yaw = Math.atan2(-cursor.directionX, -cursor.directionZ);
         const thickness = SLOPE_PLATFORM_THICKNESS;
+        const yawRotation = new THREE.Quaternion()
+          .setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+        const tiltRotation = new THREE.Quaternion()
+          .setFromAxisAngle(new THREE.Vector3(1, 0, 0), angle);
+        const slopeRotation = new THREE.Euler()
+          .setFromQuaternion(yawRotation.multiply(tiltRotation), 'XYZ');
 
         pieces.push({
           position: [
@@ -147,7 +133,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
             cursor.z + cursor.directionZ * segment.length / 2
             + cursor.directionZ * Math.sin(angle) * thickness / 2,
           ],
-          rotation: [angle, yaw, 0],
+          rotation: [slopeRotation.x, slopeRotation.y, slopeRotation.z],
           size: [segment.width, thickness, slopeLength],
           color,
         });
@@ -155,25 +141,51 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
         cursor.x += cursor.directionX * segment.length;
         cursor.y += segment.height;
         cursor.z += cursor.directionZ * segment.length;
+        currentWidth = segment.width;
         break;
       }
 
       case 'gap':
         cursor.x += cursor.directionX * segment.length;
         cursor.z += cursor.directionZ * segment.length;
+        currentWidth = segment.width;
         break;
     }
+  }
+
+  if (segments.length > 0) {
+    const finishPosition: [number, number, number] = [
+      cursor.x + cursor.directionX * FINISH_PLATFORM_SIZE / 2,
+      cursor.y - DEFAULT_PLATFORM_HEIGHT / 2,
+      cursor.z + cursor.directionZ * FINISH_PLATFORM_SIZE / 2,
+    ];
+
+    pieces.push({
+      position: finishPosition,
+      rotation: [
+        0,
+        Math.atan2(-cursor.directionX, -cursor.directionZ),
+        0,
+      ],
+      size: [
+        FINISH_PLATFORM_SIZE,
+        DEFAULT_PLATFORM_HEIGHT,
+        FINISH_PLATFORM_SIZE,
+      ],
+      color: FINISH_PLATFORM_COLOR,
+      finishTarget: [
+        finishPosition[0],
+        cursor.y + DEFAULT_PLATFORM_HEIGHT / 2,
+        finishPosition[2],
+      ],
+    });
   }
 
   return pieces;
 }
 
-type LevelProps = {
-  segments: LevelSegment[];
-};
-
 export function Level({ segments }: LevelProps) {
-  const pieces = buildLevel(segments);
+  const pieces = useMemo(() => buildLevel(segments), [segments]);
 
   return (
     <group>
@@ -184,6 +196,7 @@ export function Level({ segments }: LevelProps) {
           rotation={piece.rotation}
           size={piece.size}
           color={piece.color}
+          finishTarget={piece.finishTarget}
         />
       ))}
     </group>
