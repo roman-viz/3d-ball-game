@@ -103,6 +103,17 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           color,
         );
 
+        pieces.push({
+          position: [
+            cursor.x,
+            cursor.y - DEFAULT_PLATFORM_HEIGHT / 2,
+            cursor.z,
+          ],
+          rotation: [0, 0, 0],
+          size: [segment.width, DEFAULT_PLATFORM_HEIGHT, segment.width],
+          color,
+        });
+
         const { directionX, directionZ } = cursor;
         if (segment.direction === 'left') {
           cursor.directionX = directionZ;
