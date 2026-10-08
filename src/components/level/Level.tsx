@@ -1,4 +1,5 @@
 import Platform from '../platform/Platform';
+import { GAME_COLORS } from '../../theme/colors';
 
 type SegmentBase = {
   length: number;
@@ -38,8 +39,8 @@ type PlatformPiece = {
   color: string;
 };
 
-const DEFAULT_PLATFORM_COLOR = 'white';
-const FINISH_PLATFORM_COLOR = '#b7d8ff';
+const DEFAULT_PLATFORM_COLOR = GAME_COLORS.platform;
+const FINISH_PLATFORM_COLOR = GAME_COLORS.finishPlatform;
 const DEFAULT_PLATFORM_HEIGHT = 1;
 const SLOPE_PLATFORM_THICKNESS = 1;
 
