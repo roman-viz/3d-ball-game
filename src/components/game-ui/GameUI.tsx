@@ -120,6 +120,7 @@ function GameUI({
     state: OverlayState;
     level: number;
   } | null>(null);
+  const [startLaunching, setStartLaunching] = useState(false);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -128,14 +129,24 @@ function GameUI({
     };
   }, []);
 
-  const dismissOverlay = (overlay: OverlayState, action: () => void) => {
+  const dismissOverlay = (
+    overlay: OverlayState,
+    action: () => void,
+    duration = 300,
+  ) => {
     if (exitTimer.current !== null) clearTimeout(exitTimer.current);
     setExitingOverlay({ state: overlay, level: currentLevel });
     exitTimer.current = setTimeout(() => {
       exitTimer.current = null;
       setExitingOverlay(null);
-    }, 300);
+      if (overlay === GameState.Start) setStartLaunching(false);
+    }, duration);
     action();
+  };
+
+  const startGame = () => {
+    setStartLaunching(true);
+    dismissOverlay(GameState.Start, onStart, 760);
   };
 
   const panelState = gameState === GameState.Playing
@@ -164,7 +175,7 @@ function GameUI({
       )}
       {panelState === GameState.Start && (
         <main
-          className={`game-overlay game-start-screen${isExiting ? ' game-overlay--exiting' : ''}`}
+          className={`game-overlay game-start-screen${isExiting ? ' game-overlay--exiting' : ''}${startLaunching ? ' game-start-screen--launching' : ''}`}
         >
           <header className="start-title">
             <p className="start-kicker">A LITTLE ADVENTURE AWAITS</p>
@@ -215,7 +226,7 @@ function GameUI({
           <button
             className="start-game-button"
             type="button"
-            onClick={() => dismissOverlay(GameState.Start, onStart)}
+            onClick={startGame}
           >
             <span className="start-button-copy">
               <small>READY WHEN YOU ARE</small>

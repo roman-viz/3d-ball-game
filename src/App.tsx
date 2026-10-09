@@ -176,7 +176,7 @@ export default function App() {
         audio.currentTime = 0;
       }
       setScreamerReady(true);
-    }, 3000);
+    }, 2300);
   }, [clearFailTimer, transitionTo]);
 
   const handleScreamerPlayAgain = useCallback(() => {
@@ -206,6 +206,7 @@ export default function App() {
   return (
     <div className="game-shell">
       <Canvas
+        shadows
         camera={{
           position: [4.5, 7.5, 10],
           fov: 55,

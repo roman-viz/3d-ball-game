@@ -31,9 +31,36 @@ function Scene({
     <>
       <color attach="background" args={[GAME_COLORS.background]} />
 
-      <ambientLight intensity={1} />
+      <hemisphereLight
+        args={['#dce6ff', '#20283a', 0.85]}
+      />
 
-      <directionalLight position={[5, 10, 5]} intensity={2} />
+      <ambientLight intensity={0.55} />
+
+      <directionalLight
+        position={[5, 12, 7]}
+        intensity={2.4}
+        color="#fff4e8"
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={0.5}
+        shadow-camera-far={80}
+        shadow-camera-left={-40}
+        shadow-camera-right={40}
+        shadow-camera-top={40}
+        shadow-camera-bottom={-40}
+        shadow-bias={-0.00015}
+        shadow-normalBias={0.025}
+        shadow-radius={4}
+      />
+
+      <pointLight
+        position={[-6, 5, -4]}
+        intensity={16}
+        distance={45}
+        color="#8296ff"
+      />
 
       <Physics
         paused={gameState !== GameState.Playing}
