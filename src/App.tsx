@@ -5,13 +5,13 @@ import GameUI from './components/game-ui/GameUI';
 import { BALL_START_POSITION } from './components/level/consts';
 import { FALL_OVERLAY_DELAY_MS } from './game/consts';
 import { getFallThreshold, levels } from './game/levels';
-import type { GameState, MovementInput } from './game/models';
+import { GameState, type MovementInput } from './game/models';
 import mainThemeAsset from './assets/main_theme.mp3';
 import screamerSoundAsset from './assets/screamer.mp3';
 import './App.css';
 
 export default function App() {
-  const [gameState, setGameState] = useState<GameState>('start');
+  const [gameState, setGameState] = useState<GameState>(GameState.Start);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [resetKey, setResetKey] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -29,7 +29,7 @@ export default function App() {
   }, [gameState]);
 
   const transitionTo = useCallback((nextState: GameState) => {
-    if (nextState !== 'playing') {
+    if (nextState !== GameState.Playing) {
       joystickInput.current = { x: 0, z: 0 };
     }
     gameStateRef.current = nextState;
@@ -75,8 +75,8 @@ export default function App() {
     if (
       !musicStarted
       || !soundEnabled
-      || gameState === 'start'
-      || gameState === 'screamer'
+      || gameState === GameState.Start
+      || gameState === GameState.Screamer
     ) {
       theme.pause();
       return;
@@ -87,34 +87,34 @@ export default function App() {
 
   const handleFall = useCallback(() => {
     if (
-      gameStateRef.current !== 'playing'
+      gameStateRef.current !== GameState.Playing
       || failTimer.current !== null
     ) return;
 
     failTimer.current = setTimeout(() => {
       failTimer.current = null;
-      if (gameStateRef.current === 'playing') {
-        transitionTo('failed');
+      if (gameStateRef.current === GameState.Playing) {
+        transitionTo(GameState.Failed);
       }
     }, FALL_OVERLAY_DELAY_MS);
   }, [transitionTo]);
 
   const handleFinish = useCallback(() => {
-    if (gameStateRef.current !== 'playing') return;
+    if (gameStateRef.current !== GameState.Playing) return;
     clearFailTimer();
-    transitionTo('finished');
+    transitionTo(GameState.Finished);
   }, [clearFailTimer, transitionTo]);
 
   const resetCurrentLevel = useCallback(() => {
     clearFailTimer();
     setResetKey((key) => key + 1);
-    transitionTo('playing');
+    transitionTo(GameState.Playing);
   }, [clearFailTimer, transitionTo]);
 
   const handleStart = useCallback(() => {
     setMusicStarted(true);
     if (soundEnabled) playMainTheme();
-    transitionTo('playing');
+    transitionTo(GameState.Playing);
   }, [playMainTheme, soundEnabled, transitionTo]);
 
   const handleToggleSound = useCallback(() => {
@@ -127,15 +127,15 @@ export default function App() {
     setSoundEnabled(true);
     if (
       musicStarted
-      && gameStateRef.current !== 'start'
-      && gameStateRef.current !== 'screamer'
+      && gameStateRef.current !== GameState.Start
+      && gameStateRef.current !== GameState.Screamer
     ) {
       playMainTheme();
     }
   }, [musicStarted, playMainTheme, soundEnabled]);
 
   const handlePlayAgain = useCallback(() => {
-    if (gameStateRef.current === 'finished') {
+    if (gameStateRef.current === GameState.Finished) {
       setCurrentLevelIndex(0);
     }
     resetCurrentLevel();
@@ -143,21 +143,21 @@ export default function App() {
 
   const handleNextLevel = useCallback(() => {
     if (
-      gameStateRef.current !== 'finished'
+      gameStateRef.current !== GameState.Finished
       || currentLevelIndex >= levels.length - 1
     ) return;
 
     clearFailTimer();
     setCurrentLevelIndex((index) => index + 1);
     setResetKey((key) => key + 1);
-    transitionTo('playing');
+    transitionTo(GameState.Playing);
   }, [clearFailTimer, currentLevelIndex, transitionTo]);
 
   const handleScreamer = useCallback(() => {
-    if (gameStateRef.current !== 'playing') return;
+    if (gameStateRef.current !== GameState.Playing) return;
     clearFailTimer();
     setScreamerReady(false);
-    transitionTo('screamer');
+    transitionTo(GameState.Screamer);
     mainTheme.current?.pause();
 
     const audio = screamerSound.current;
@@ -192,7 +192,7 @@ export default function App() {
     setScreamerReady(false);
     setCurrentLevelIndex(0);
     setResetKey((key) => key + 1);
-    transitionTo('start');
+    transitionTo(GameState.Start);
   }, [transitionTo]);
 
   useEffect(() => () => {

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import type { GameState, MovementInput } from '../../game/models';
+import { GameState, type MovementInput } from '../../game/models';
 import screamerImage from '../../assets/screamer.webp';
 import './GameUI.css';
 
-type OverlayState = Exclude<GameState, 'playing' | 'screamer'>;
+type OverlayState = Exclude<GameState, GameState.Playing | GameState.Screamer>;
 
 type GameUIProps = {
   gameState: GameState;
@@ -138,20 +138,20 @@ function GameUI({
     action();
   };
 
-  const panelState = gameState === 'playing'
+  const panelState = gameState === GameState.Playing
     ? exitingOverlay?.state ?? null
-    : gameState === 'screamer'
+    : gameState === GameState.Screamer
       ? null
       : gameState;
-  const panelLevel = gameState === 'playing'
+  const panelLevel = gameState === GameState.Playing
     ? exitingOverlay?.level ?? currentLevel
     : currentLevel;
   const isFinalLevel = panelLevel === totalLevels - 1;
-  const isExiting = gameState === 'playing' && exitingOverlay !== null;
+  const isExiting = gameState === GameState.Playing && exitingOverlay !== null;
 
   return (
     <>
-      {(gameState !== 'screamer' || screamerReady) && (
+      {(gameState !== GameState.Screamer || screamerReady) && (
         <button
           className="sound-button"
           type="button"
@@ -162,7 +162,7 @@ function GameUI({
           <span aria-hidden="true">{soundEnabled ? '🔊' : '🔇'}</span>
         </button>
       )}
-      {panelState === 'start' && (
+      {panelState === GameState.Start && (
         <main
           className={`game-overlay game-start-screen${isExiting ? ' game-overlay--exiting' : ''}`}
         >
@@ -215,7 +215,7 @@ function GameUI({
           <button
             className="start-game-button"
             type="button"
-            onClick={() => dismissOverlay('start', onStart)}
+            onClick={() => dismissOverlay(GameState.Start, onStart)}
           >
             <span className="start-button-copy">
               <small>READY WHEN YOU ARE</small>
@@ -226,7 +226,7 @@ function GameUI({
         </main>
       )}
 
-      {gameState === 'playing' && (
+      {gameState === GameState.Playing && (
         <>
           <div className="game-hud" aria-live="polite">
             LEVEL {panelLevel + 1} <span>/ {totalLevels}</span>
@@ -237,7 +237,7 @@ function GameUI({
         </>
       )}
 
-      {gameState === 'screamer' && (
+      {gameState === GameState.Screamer && (
         <main className={`screamer-screen${screamerReady ? ' screamer-screen--calm' : ''}`}>
           <img className="screamer-image" src={screamerImage} alt="" />
           {screamerReady && (
@@ -252,12 +252,12 @@ function GameUI({
         </main>
       )}
 
-      {panelState !== null && panelState !== 'start' && (
+      {panelState !== null && panelState !== GameState.Start && (
         <main
           className={`game-overlay game-overlay--${panelState}${isExiting ? ' game-overlay--exiting' : ''}`}
         >
           <section className="game-card" key={panelState}>
-            {panelState === 'failed' && (
+            {panelState === GameState.Failed && (
               <>
                 <p className="game-eyebrow">LEVEL {currentLevel + 1}</p>
                 <div className="game-result-icon game-result-icon--fail" aria-hidden="true">
@@ -268,14 +268,14 @@ function GameUI({
                 <button
                   className="game-button"
                   type="button"
-                  onClick={() => dismissOverlay('failed', onPlayAgain)}
+                  onClick={() => dismissOverlay(GameState.Failed, onPlayAgain)}
                 >
                   PLAY AGAIN <span aria-hidden="true">↻</span>
                 </button>
               </>
             )}
 
-            {panelState === 'finished' && (
+            {panelState === GameState.Finished && (
               <>
                 <p className="game-eyebrow">
                   LEVEL {panelLevel + 1} / {totalLevels}
@@ -293,7 +293,7 @@ function GameUI({
                   className="game-button"
                   type="button"
                   onClick={() => dismissOverlay(
-                    'finished',
+                    GameState.Finished,
                     isFinalLevel ? onPlayAgain : onNextLevel,
                   )}
                 >

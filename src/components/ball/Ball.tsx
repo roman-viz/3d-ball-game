@@ -8,6 +8,7 @@ import {
   type RapierRigidBody,
 } from '@react-three/rapier';
 import * as THREE from 'three';
+import { GameState, MovementKeyCode } from '../../game/models';
 import { GAME_COLORS } from '../../theme/colors';
 import {
   BALL_ANGULAR_DAMPING,
@@ -25,6 +26,13 @@ import {
   ROLLING_MARKINGS,
 } from './consts';
 import type { BallProps, BallVisualProps } from './models';
+
+const ARROW_KEY_CODES: ReadonlySet<string> = new Set([
+  MovementKeyCode.ArrowUp,
+  MovementKeyCode.ArrowDown,
+  MovementKeyCode.ArrowLeft,
+  MovementKeyCode.ArrowRight,
+]);
 
 function createRollingMarkGeometry() {
   const positions = [0, 0, 0];
@@ -283,30 +291,30 @@ function Ball({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
-        gameStateRef.current !== 'playing'
+        gameStateRef.current !== GameState.Playing
         || fallPending.current
         || finishTriggered.current
       ) return;
 
       switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
-          if (event.code.startsWith('Arrow')) event.preventDefault();
+        case MovementKeyCode.Forward:
+        case MovementKeyCode.ArrowUp:
+          if (ARROW_KEY_CODES.has(event.code)) event.preventDefault();
           keys.current.forward = true;
           break;
-        case 'KeyS':
-        case 'ArrowDown':
-          if (event.code.startsWith('Arrow')) event.preventDefault();
+        case MovementKeyCode.Backward:
+        case MovementKeyCode.ArrowDown:
+          if (ARROW_KEY_CODES.has(event.code)) event.preventDefault();
           keys.current.backward = true;
           break;
-        case 'KeyA':
-        case 'ArrowLeft':
-          if (event.code.startsWith('Arrow')) event.preventDefault();
+        case MovementKeyCode.Left:
+        case MovementKeyCode.ArrowLeft:
+          if (ARROW_KEY_CODES.has(event.code)) event.preventDefault();
           keys.current.left = true;
           break;
-        case 'KeyD':
-        case 'ArrowRight':
-          if (event.code.startsWith('Arrow')) event.preventDefault();
+        case MovementKeyCode.Right:
+        case MovementKeyCode.ArrowRight:
+          if (ARROW_KEY_CODES.has(event.code)) event.preventDefault();
           keys.current.right = true;
           break;
       }
@@ -314,20 +322,20 @@ function Ball({
 
     const handleKeyUp = (event: KeyboardEvent) => {
       switch (event.code) {
-        case 'KeyW':
-        case 'ArrowUp':
+        case MovementKeyCode.Forward:
+        case MovementKeyCode.ArrowUp:
           keys.current.forward = false;
           break;
-        case 'KeyS':
-        case 'ArrowDown':
+        case MovementKeyCode.Backward:
+        case MovementKeyCode.ArrowDown:
           keys.current.backward = false;
           break;
-        case 'KeyA':
-        case 'ArrowLeft':
+        case MovementKeyCode.Left:
+        case MovementKeyCode.ArrowLeft:
           keys.current.left = false;
           break;
-        case 'KeyD':
-        case 'ArrowRight':
+        case MovementKeyCode.Right:
+        case MovementKeyCode.ArrowRight:
           keys.current.right = false;
           break;
       }
@@ -353,7 +361,7 @@ function Ball({
   }, []);
 
   useEffect(() => {
-    if (gameState !== 'playing') {
+    if (gameState !== GameState.Playing) {
       keys.current.forward = false;
       keys.current.backward = false;
       keys.current.left = false;
@@ -367,7 +375,7 @@ function Ball({
     const otherUserData = event.other.rigidBodyObject?.userData;
     const target = otherUserData?.finishTarget;
     if (
-      gameStateRef.current === 'playing'
+      gameStateRef.current === GameState.Playing
       && !screamerTriggered.current
       && otherUserData?.screamer === true
     ) {
@@ -387,7 +395,7 @@ function Ball({
     }
 
     if (
-      gameStateRef.current !== 'playing'
+      gameStateRef.current !== GameState.Playing
       || fallPending.current
       || finishTriggered.current
       || !Array.isArray(target)
@@ -404,7 +412,7 @@ function Ball({
     finishReported.current = false;
     const position = body.translation();
     finishStart.current.set(position.x, position.y, position.z);
-    finishTarget.current.set(target[0], target[1] + BALL_RADIUS, target[2]);
+    finishTarget.current.set(target[0], target[1], target[2]);
     finishElapsed.current = 0;
     keys.current.forward = false;
     keys.current.backward = false;
@@ -417,7 +425,7 @@ function Ball({
 
   useFrame((_, delta) => {
     const body = rigidBody.current;
-    if (!body || gameStateRef.current !== 'playing') return;
+    if (!body || gameStateRef.current !== GameState.Playing) return;
 
     if (finishTriggered.current) {
       finishElapsed.current = Math.min(

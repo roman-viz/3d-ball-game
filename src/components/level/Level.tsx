@@ -1,7 +1,13 @@
 import { useMemo } from 'react';
 import Platform from '../platform/Platform';
 import { GAME_COLORS } from '../../theme/colors';
-import type { LevelProps, LevelSegment, PlatformPiece } from './models';
+import {
+  LevelSegmentType,
+  TurnDirection,
+  type LevelProps,
+  type LevelSegment,
+  type PlatformPiece,
+} from './models';
 import {
   DEFAULT_PLATFORM_COLOR,
   DEFAULT_PLATFORM_HEIGHT,
@@ -60,7 +66,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
     const color = segment.color ?? DEFAULT_PLATFORM_COLOR;
 
     switch (segment.type) {
-      case 'straight':
+      case LevelSegmentType.Straight:
         addStraightPiece(
           segment.length,
           segment.width,
@@ -71,7 +77,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
         currentWidth = segment.width;
         break;
 
-      case 'turn': {
+      case LevelSegmentType.Turn: {
         const halfLength = segment.length / 2;
         addStraightPiece(
           halfLength,
@@ -99,7 +105,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
         });
 
         const { directionX, directionZ } = cursor;
-        if (segment.direction === 'left') {
+        if (segment.direction === TurnDirection.Left) {
           cursor.directionX = directionZ;
           cursor.directionZ = -directionX;
         } else {
@@ -118,7 +124,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
         break;
       }
 
-      case 'slope': {
+      case LevelSegmentType.Slope: {
         const angle = Math.atan2(segment.height, segment.length);
         const slopeLength = Math.hypot(segment.length, segment.height);
         const yaw = Math.atan2(-cursor.directionX, -cursor.directionZ);
@@ -152,7 +158,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
         break;
       }
 
-      case 'gap':
+      case LevelSegmentType.Gap:
         cursor.x += cursor.directionX * segment.length;
         cursor.z += cursor.directionZ * segment.length;
         currentWidth = segment.width;

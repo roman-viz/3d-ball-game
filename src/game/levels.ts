@@ -1,4 +1,8 @@
-import type { LevelSegment } from '../components/level/models';
+import {
+  LevelSegmentType,
+  TurnDirection,
+  type LevelSegment,
+} from '../components/level/models';
 import { FALL_DISTANCE_BELOW_LEVEL } from './consts';
 
 function isLevelSegment(value: unknown): value is LevelSegment {
@@ -17,15 +21,16 @@ function isLevelSegment(value: unknown): value is LevelSegment {
   }
 
   switch (segment.type) {
-    case 'straight':
+    case LevelSegmentType.Straight:
       return segment.height === undefined
         || (typeof segment.height === 'number' && Number.isFinite(segment.height));
-    case 'turn':
-      return segment.direction === 'left' || segment.direction === 'right';
-    case 'slope':
+    case LevelSegmentType.Turn:
+      return segment.direction === TurnDirection.Left
+        || segment.direction === TurnDirection.Right;
+    case LevelSegmentType.Slope:
       return typeof segment.height === 'number'
         && Number.isFinite(segment.height);
-    case 'gap':
+    case LevelSegmentType.Gap:
       return true;
     default:
       return false;
@@ -77,7 +82,7 @@ export function getFallThreshold(segments: LevelSegment[]): number {
   let minimumElevation = 0;
 
   for (const segment of segments) {
-    if (segment.type === 'slope') {
+    if (segment.type === LevelSegmentType.Slope) {
       elevation += segment.height;
       minimumElevation = Math.min(minimumElevation, elevation);
     }

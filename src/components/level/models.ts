@@ -1,3 +1,15 @@
+export enum LevelSegmentType {
+  Straight = 'straight',
+  Turn = 'turn',
+  Slope = 'slope',
+  Gap = 'gap',
+}
+
+export enum TurnDirection {
+  Left = 'left',
+  Right = 'right',
+}
+
 export type SegmentBase = {
   length: number;
   width: number;
@@ -6,22 +18,22 @@ export type SegmentBase = {
 };
 
 export type StraightSegment = SegmentBase & {
-  type: 'straight';
+  type: LevelSegmentType.Straight;
   height?: number;
 };
 
 export type TurnSegment = SegmentBase & {
-  type: 'turn';
-  direction: 'left' | 'right';
+  type: LevelSegmentType.Turn;
+  direction: TurnDirection;
 };
 
 export type SlopeSegment = SegmentBase & {
-  type: 'slope';
+  type: LevelSegmentType.Slope;
   height: number;
 };
 
 export type GapSegment = SegmentBase & {
-  type: 'gap';
+  type: LevelSegmentType.Gap;
 };
 
 export type LevelSegment =

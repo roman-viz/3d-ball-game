@@ -1429,6 +1429,68 @@
   }
 }
 
+.start-reward-details {
+  gap: 7px;
+}
+
+.start-reward-details .start-info-label {
+  font-size: 10px;
+}
+
+.start-mission .start-reward {
+  font-size: 26px;
+}
+
+.start-mission .start-reward-line {
+  font-size: 11px;
+  letter-spacing: .1em;
+}
+
+@media (max-width: 800px), (pointer: coarse) {
+  .start-reward-details .start-info-label {
+    font-size: 9px;
+  }
+
+  .start-mission .start-reward {
+    font-size: 24px;
+  }
+
+  .start-mission .start-reward-line {
+    font-size: clamp(9px, 2.5vw, 10px);
+    letter-spacing: .06em;
+  }
+}
+
+@media (max-width: 360px) {
+  .start-mission .start-reward-line {
+    font-size: 8px;
+  }
+}
+
+.start-mission {
+  align-items: stretch;
+  padding-block: 0;
+}
+
+.start-mission > i {
+  align-self: stretch;
+  height: auto;
+}
+
+.start-level-count {
+  align-content: center;
+  justify-items: center;
+  gap: 9px;
+}
+
+.start-level-count .start-info-label {
+  font-size: 11px;
+}
+
+.start-level-count strong {
+  font-size: clamp(30px, 2.5vw, 38px);
+}
+
 @media (max-width: 360px) {
   .game-joystick {
     bottom: max(16px, env(safe-area-inset-bottom));

@@ -5,6 +5,7 @@ import Ball from '../ball/Ball';
 import Camera from '../camera/Camera';
 import { Level } from '../level/Level';
 import { GAME_COLORS } from '../../theme/colors';
+import { GameState } from '../../game/models';
 import type { SceneProps } from './models';
 import {
   PHYSICS_GRAVITY,
@@ -35,7 +36,7 @@ function Scene({
       <directionalLight position={[5, 10, 5]} intensity={2} />
 
       <Physics
-        paused={gameState !== 'playing'}
+        paused={gameState !== GameState.Playing}
         gravity={PHYSICS_GRAVITY}
         timeStep={PHYSICS_TIME_STEP}
         numSolverIterations={PHYSICS_SOLVER_ITERATIONS}
