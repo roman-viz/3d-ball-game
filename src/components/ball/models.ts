@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import type { RapierRigidBody } from '@react-three/rapier';
 import type * as THREE from 'three';
 import type { GameState } from '../../game/models';
+import type { MovementInput } from '../../game/models';
 
 export type BallProps = {
   ballRef: RefObject<THREE.Mesh | null>;
@@ -9,8 +10,10 @@ export type BallProps = {
   startPosition: [number, number, number];
   fallThreshold: number;
   resetKey: number;
+  joystickInput: RefObject<MovementInput>;
   onFall: () => void;
   onFinish: () => void;
+  onScreamer: () => void;
 };
 
 export type BallVisualProps = Pick<BallProps, 'ballRef' | 'resetKey'> & {

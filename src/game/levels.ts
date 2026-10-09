@@ -11,6 +11,7 @@ function isLevelSegment(value: unknown): value is LevelSegment {
     || typeof segment.width !== 'number'
     || !Number.isFinite(segment.width)
     || (segment.color !== undefined && typeof segment.color !== 'string')
+    || (segment.screamer !== undefined && typeof segment.screamer !== 'boolean')
   ) {
     return false;
   }

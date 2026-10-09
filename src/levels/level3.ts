@@ -16,7 +16,7 @@ const level3: LevelSegment[] = [
   { type: 'straight', length: 7, width: 1.5 },
   { type: 'straight', length: 5, width: 0.1 },
   { type: 'slope', length: 8, width: 1, height: 5 },
-  { type: 'turn', direction: 'left', length: 6, width: 2 }, // SCREAMER
+  { type: 'turn', direction: 'left', length: 6, width: 2, screamer: true },
   { type: 'straight', length: 7, width: 0.5 },
   { type: 'straight', length: 6, width: 0.1 },
   { type: 'turn', direction: 'right', length: 5, width: 2 },

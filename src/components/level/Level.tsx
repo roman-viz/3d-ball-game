@@ -36,6 +36,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
     width: number,
     height: number,
     color: string,
+    screamer?: boolean,
   ) {
     const yaw = Math.atan2(-cursor.directionX, -cursor.directionZ);
 
@@ -48,6 +49,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
       rotation: [0, yaw, 0],
       size: [width, height, length],
       color,
+      screamer,
     });
 
     cursor.x += cursor.directionX * length;
@@ -64,6 +66,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           segment.width,
           segment.height ?? DEFAULT_PLATFORM_HEIGHT,
           color,
+          segment.screamer,
         );
         currentWidth = segment.width;
         break;
@@ -75,6 +78,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           currentWidth,
           DEFAULT_PLATFORM_HEIGHT,
           color,
+          segment.screamer,
         );
 
         const turnPlatformWidth = Math.max(currentWidth, segment.width);
@@ -91,6 +95,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
             turnPlatformWidth,
           ],
           color,
+          screamer: segment.screamer,
         });
 
         const { directionX, directionZ } = cursor;
@@ -107,6 +112,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           segment.width,
           DEFAULT_PLATFORM_HEIGHT,
           color,
+          segment.screamer,
         );
         currentWidth = segment.width;
         break;
@@ -136,6 +142,7 @@ function buildLevel(segments: LevelSegment[]): PlatformPiece[] {
           rotation: [slopeRotation.x, slopeRotation.y, slopeRotation.z],
           size: [segment.width, thickness, slopeLength],
           color,
+          screamer: segment.screamer,
         });
 
         cursor.x += cursor.directionX * segment.length;
@@ -196,6 +203,7 @@ export function Level({ segments }: LevelProps) {
           rotation={piece.rotation}
           size={piece.size}
           color={piece.color}
+          screamer={piece.screamer}
           finishTarget={piece.finishTarget}
         />
       ))}

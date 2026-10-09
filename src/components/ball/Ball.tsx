@@ -223,8 +223,10 @@ function Ball({
   startPosition,
   fallThreshold,
   resetKey,
+  joystickInput,
   onFall,
   onFinish,
+  onScreamer,
 }: BallProps) {
   const rigidBody = useRef<RapierRigidBody>(null);
   const gameStateRef = useRef(gameState);
@@ -236,6 +238,8 @@ function Ball({
   const finishStart = useRef(new THREE.Vector3());
   const finishTarget = useRef(new THREE.Vector3());
   const finishPosition = useRef(new THREE.Vector3());
+  const joystickMovement = useRef({ x: 0, z: 0 });
+  const screamerTriggered = useRef(false);
   const keys = useRef({
     forward: false,
     backward: false,
@@ -258,6 +262,9 @@ function Ball({
     finishTriggered.current = false;
     finishReported.current = false;
     finishElapsed.current = 0;
+    screamerTriggered.current = false;
+    joystickMovement.current.x = 0;
+    joystickMovement.current.z = 0;
     keys.current.forward = false;
     keys.current.backward = false;
     keys.current.left = false;
@@ -351,11 +358,34 @@ function Ball({
       keys.current.backward = false;
       keys.current.left = false;
       keys.current.right = false;
+      joystickMovement.current.x = 0;
+      joystickMovement.current.z = 0;
     }
   }, [gameState]);
 
   const handleCollisionEnter = (event: CollisionEnterPayload) => {
-    const target = event.other.rigidBodyObject?.userData.finishTarget;
+    const otherUserData = event.other.rigidBodyObject?.userData;
+    const target = otherUserData?.finishTarget;
+    if (
+      gameStateRef.current === 'playing'
+      && !screamerTriggered.current
+      && otherUserData?.screamer === true
+    ) {
+      const body = rigidBody.current;
+      if (!body) return;
+
+      screamerTriggered.current = true;
+      keys.current.forward = false;
+      keys.current.backward = false;
+      keys.current.left = false;
+      keys.current.right = false;
+      body.setGravityScale(0, true);
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      onScreamer();
+      return;
+    }
+
     if (
       gameStateRef.current !== 'playing'
       || fallPending.current
@@ -429,13 +459,31 @@ function Ball({
 
     if (fallPending.current) return;
 
-    let inputX = Number(keys.current.right) - Number(keys.current.left);
-    let inputZ = Number(keys.current.backward) - Number(keys.current.forward);
-    const inputLength = Math.hypot(inputX, inputZ);
+    let keyboardX = Number(keys.current.right) - Number(keys.current.left);
+    let keyboardZ = Number(keys.current.backward) - Number(keys.current.forward);
+    const keyboardLength = Math.hypot(keyboardX, keyboardZ);
+    if (keyboardLength > 0) {
+      keyboardX /= keyboardLength;
+      keyboardZ /= keyboardLength;
+    }
 
-    if (inputLength > 0) {
+    const smoothing = 1 - Math.exp(-18 * delta);
+    joystickMovement.current.x += (
+      joystickInput.current.x - joystickMovement.current.x
+    ) * smoothing;
+    joystickMovement.current.z += (
+      joystickInput.current.z - joystickMovement.current.z
+    ) * smoothing;
+
+    let inputX = keyboardX + joystickMovement.current.x;
+    let inputZ = keyboardZ + joystickMovement.current.z;
+    const inputLength = Math.hypot(inputX, inputZ);
+    if (inputLength > 1) {
       inputX /= inputLength;
       inputZ /= inputLength;
+    }
+
+    if (inputLength > 0.001) {
       body.applyImpulse(
         {
           x: inputX * BALL_INPUT_ACCELERATION * delta,

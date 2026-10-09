@@ -11,6 +11,7 @@ function Platform({
   size,
   rotation = [0, 0, 0],
   color = DEFAULT_PLATFORM_MATERIAL_COLOR,
+  screamer,
   finishTarget,
 }: PlatformProps) {
   return (
@@ -19,7 +20,7 @@ function Platform({
       colliders={false}
       position={position}
       rotation={rotation}
-      userData={finishTarget ? { finishTarget } : undefined}
+      userData={finishTarget || screamer ? { finishTarget, screamer } : undefined}
     >
       <CuboidCollider
         args={[size[0] / 2, size[1] / 2, size[2] / 2]}

@@ -5,21 +5,33 @@ import GameUI from './components/game-ui/GameUI';
 import { BALL_START_POSITION } from './components/level/consts';
 import { FALL_OVERLAY_DELAY_MS } from './game/consts';
 import { getFallThreshold, levels } from './game/levels';
-import type { GameState } from './game/models';
+import type { GameState, MovementInput } from './game/models';
+import mainThemeAsset from './assets/main_theme.mp3';
+import screamerSoundAsset from './assets/screamer.mp3';
 import './App.css';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('start');
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [resetKey, setResetKey] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [musicStarted, setMusicStarted] = useState(false);
+  const [screamerReady, setScreamerReady] = useState(false);
+  const joystickInput = useRef<MovementInput>({ x: 0, z: 0 });
   const gameStateRef = useRef(gameState);
   const failTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const screamerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mainTheme = useRef<HTMLAudioElement | null>(null);
+  const screamerSound = useRef<HTMLAudioElement | null>(null);
 
   useLayoutEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
   const transitionTo = useCallback((nextState: GameState) => {
+    if (nextState !== 'playing') {
+      joystickInput.current = { x: 0, z: 0 };
+    }
     gameStateRef.current = nextState;
     setGameState(nextState);
   }, []);
@@ -30,6 +42,48 @@ export default function App() {
       failTimer.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    const theme = new Audio(mainThemeAsset);
+    theme.loop = true;
+    const screamer = new Audio(screamerSoundAsset);
+    screamer.volume = 1;
+    mainTheme.current = theme;
+    screamerSound.current = screamer;
+
+    return () => {
+      theme.pause();
+      screamer.pause();
+      mainTheme.current = null;
+      screamerSound.current = null;
+    };
+  }, []);
+
+  const playMainTheme = useCallback(() => {
+    const theme = mainTheme.current;
+    if (!theme || !theme.paused) return;
+
+    void theme.play().catch((error: unknown) => {
+      console.error('Unable to play the main theme.', error);
+    });
+  }, []);
+
+  useEffect(() => {
+    const theme = mainTheme.current;
+    if (!theme) return;
+
+    if (
+      !musicStarted
+      || !soundEnabled
+      || gameState === 'start'
+      || gameState === 'screamer'
+    ) {
+      theme.pause();
+      return;
+    }
+
+    playMainTheme();
+  }, [gameState, musicStarted, playMainTheme, soundEnabled]);
 
   const handleFall = useCallback(() => {
     if (
@@ -58,8 +112,27 @@ export default function App() {
   }, [clearFailTimer, transitionTo]);
 
   const handleStart = useCallback(() => {
+    setMusicStarted(true);
+    if (soundEnabled) playMainTheme();
     transitionTo('playing');
-  }, [transitionTo]);
+  }, [playMainTheme, soundEnabled, transitionTo]);
+
+  const handleToggleSound = useCallback(() => {
+    if (soundEnabled) {
+      setSoundEnabled(false);
+      mainTheme.current?.pause();
+      return;
+    }
+
+    setSoundEnabled(true);
+    if (
+      musicStarted
+      && gameStateRef.current !== 'start'
+      && gameStateRef.current !== 'screamer'
+    ) {
+      playMainTheme();
+    }
+  }, [musicStarted, playMainTheme, soundEnabled]);
 
   const handlePlayAgain = useCallback(() => {
     if (gameStateRef.current === 'finished') {
@@ -80,7 +153,52 @@ export default function App() {
     transitionTo('playing');
   }, [clearFailTimer, currentLevelIndex, transitionTo]);
 
-  useEffect(() => () => clearFailTimer(), [clearFailTimer]);
+  const handleScreamer = useCallback(() => {
+    if (gameStateRef.current !== 'playing') return;
+    clearFailTimer();
+    setScreamerReady(false);
+    transitionTo('screamer');
+    mainTheme.current?.pause();
+
+    const audio = screamerSound.current;
+    if (audio) {
+      audio.currentTime = 0;
+      void audio.play().catch((error: unknown) => {
+        console.error('Unable to play the screamer sound.', error);
+      });
+    }
+
+    if (screamerTimer.current !== null) clearTimeout(screamerTimer.current);
+    screamerTimer.current = setTimeout(() => {
+      screamerTimer.current = null;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      setScreamerReady(true);
+    }, 3000);
+  }, [clearFailTimer, transitionTo]);
+
+  const handleScreamerPlayAgain = useCallback(() => {
+    if (screamerTimer.current !== null) {
+      clearTimeout(screamerTimer.current);
+      screamerTimer.current = null;
+    }
+    if (screamerSound.current) {
+      screamerSound.current.pause();
+      screamerSound.current.currentTime = 0;
+    }
+    joystickInput.current = { x: 0, z: 0 };
+    setScreamerReady(false);
+    setCurrentLevelIndex(0);
+    setResetKey((key) => key + 1);
+    transitionTo('start');
+  }, [transitionTo]);
+
+  useEffect(() => () => {
+    clearFailTimer();
+    if (screamerTimer.current !== null) clearTimeout(screamerTimer.current);
+  }, [clearFailTimer]);
 
   const currentLevel = levels[currentLevelIndex];
   const fallThreshold = getFallThreshold(currentLevel);
@@ -100,17 +218,26 @@ export default function App() {
           startPosition={BALL_START_POSITION}
           fallThreshold={fallThreshold}
           resetKey={resetKey}
+          joystickInput={joystickInput}
           onFall={handleFall}
           onFinish={handleFinish}
+          onScreamer={handleScreamer}
         />
       </Canvas>
       <GameUI
         gameState={gameState}
         currentLevel={currentLevelIndex}
         totalLevels={levels.length}
+        soundEnabled={soundEnabled}
+        screamerReady={screamerReady}
         onStart={handleStart}
         onPlayAgain={handlePlayAgain}
+        onPlayAgainToStart={handleScreamerPlayAgain}
         onNextLevel={handleNextLevel}
+        onToggleSound={handleToggleSound}
+        onJoystickInput={(input) => {
+          joystickInput.current = input;
+        }}
       />
     </div>
   );

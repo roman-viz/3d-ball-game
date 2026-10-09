@@ -19,8 +19,10 @@ function Scene({
   startPosition,
   fallThreshold,
   resetKey,
+  joystickInput,
   onFall,
   onFinish,
+  onScreamer,
 }: SceneProps) {
   const ballRef = useRef<THREE.Mesh>(null);
 
@@ -46,8 +48,10 @@ function Scene({
           startPosition={startPosition}
           fallThreshold={fallThreshold}
           resetKey={resetKey}
+          joystickInput={joystickInput}
           onFall={onFall}
           onFinish={onFinish}
+          onScreamer={onScreamer}
         />
       </Physics>
       <Camera target={ballRef} resetKey={resetKey} />

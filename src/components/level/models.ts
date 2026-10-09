@@ -2,6 +2,7 @@ export type SegmentBase = {
   length: number;
   width: number;
   color?: string;
+  screamer?: boolean;
 };
 
 export type StraightSegment = SegmentBase & {
@@ -34,6 +35,7 @@ export type PlatformPiece = {
   rotation: [number, number, number];
   size: [number, number, number];
   color: string;
+  screamer?: boolean;
   finishTarget?: [number, number, number];
 };
 
