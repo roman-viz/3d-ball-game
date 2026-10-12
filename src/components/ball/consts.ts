@@ -2,8 +2,10 @@ import type { RollingMarkTransform } from './models';
 
 export const BALL_RADIUS = 0.5;
 export const BALL_INPUT_ACCELERATION = 16;
-export const BALL_LINEAR_DAMPING = 0.2;
+export const BALL_LINEAR_DAMPING = 0.1;
 export const BALL_ANGULAR_DAMPING = 0.1;
+export const BALL_TOP_SPEED = 8;
+export const BALL_AIR_DRAG = BALL_INPUT_ACCELERATION / BALL_TOP_SPEED ** 2;
 export const BALL_FRICTION = 0.8;
 export const BALL_RESTITUTION = 0.03;
 export const BALL_GROUND_CHECK_DISTANCE = 0.08;

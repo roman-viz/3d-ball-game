@@ -1345,7 +1345,7 @@
   position: absolute;
   z-index: 3;
   bottom: max(24px, env(safe-area-inset-bottom));
-  left: max(24px, env(safe-area-inset-left));
+  right: max(24px, env(safe-area-inset-right));
   display: none;
 }
 
@@ -1564,7 +1564,7 @@
 @media (max-width: 360px) {
   .game-joystick {
     bottom: max(16px, env(safe-area-inset-bottom));
-    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
   }
 
   .game-joystick .virtual-joystick {

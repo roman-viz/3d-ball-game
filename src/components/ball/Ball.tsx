@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { GameState, MovementKeyCode } from '../../game/models';
 import { GAME_COLORS } from '../../theme/colors';
 import {
+  BALL_AIR_DRAG,
   BALL_ANGULAR_DAMPING,
   BALL_FRICTION,
   BALL_GROUND_CHECK_DISTANCE,
@@ -489,6 +490,20 @@ function Ball({
     if (inputLength > 1) {
       inputX /= inputLength;
       inputZ /= inputLength;
+    }
+
+    const velocity = body.linvel();
+    const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+    // Drag only counters the input force, so coasting stays free.
+    if (horizontalSpeed > 0.001 && inputLength > 0.001) {
+      const dragImpulse = Math.min(
+        BALL_AIR_DRAG * horizontalSpeed * Math.min(inputLength, 1) * delta,
+        1 / horizontalSpeed,
+      );
+      body.applyImpulse(
+        { x: -velocity.x * dragImpulse, y: 0, z: -velocity.z * dragImpulse },
+        true,
+      );
     }
 
     if (inputLength > 0.001) {
