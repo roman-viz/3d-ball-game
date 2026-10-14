@@ -8,6 +8,7 @@ import { getFallThreshold, levels } from './game/levels';
 import { GameState, type MovementInput } from './game/models';
 import mainThemeAsset from './assets/main_theme.mp3';
 import screamerSoundAsset from './assets/screamer.mp3';
+import screamerImage from './assets/screamer.webp';
 import './App.css';
 
 export default function App() {
@@ -46,18 +47,39 @@ export default function App() {
   useEffect(() => {
     const theme = new Audio(mainThemeAsset);
     theme.loop = true;
-    const screamer = new Audio(screamerSoundAsset);
-    screamer.volume = 1;
     mainTheme.current = theme;
-    screamerSound.current = screamer;
 
     return () => {
       theme.pause();
-      screamer.pause();
       mainTheme.current = null;
-      screamerSound.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const levelHasScreamer = levels[currentLevelIndex]
+      .some((segment) => segment.screamer);
+    if (!levelHasScreamer) return;
+
+    const image = new Image();
+    image.src = screamerImage;
+    void image.decode().catch((error: unknown) => {
+      console.error('Unable to preload the screamer image.', error);
+    });
+
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.volume = 1;
+    audio.src = screamerSoundAsset;
+    audio.load();
+    screamerSound.current = audio;
+
+    return () => {
+      audio.pause();
+      if (screamerSound.current === audio) {
+        screamerSound.current = null;
+      }
+    };
+  }, [currentLevelIndex]);
 
   const playMainTheme = useCallback(() => {
     const theme = mainTheme.current;
